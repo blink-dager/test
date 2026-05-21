@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Management — Matching Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #272c3d;
+    --accent: #5b8dee;
+    --accent2: #e05b8d;
+    --green: #4ecfa8;
+    --yellow: #f0c060;
+    --text: #e8ecf4;
+    --muted: #7a849c;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .header .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  .header h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--text) 30%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p {
+    color: var(--muted);
+    margin-top: 10px;
+    font-size: 15px;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    max-width: 820px;
+    margin: 0 auto 36px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 10px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Quiz selector */
+  .quiz-nav {
+    max-width: 820px;
+    margin: 0 auto 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .quiz-nav::-webkit-scrollbar { display: none; }
+  .quiz-tab {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .quiz-tab:hover { border-color: var(--accent); color: var(--text); }
+  .quiz-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .quiz-tab.done { border-color: var(--green); color: var(--green); }
+
+  /* Matching card */
+  .quiz-card {
+    max-width: 820px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    animation: fadeIn 0.35s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card-header {
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .q-number {
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+  .card-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .card-header .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  /* Matching area */
+  .matching-area {
+    padding: 24px 28px;
+  }
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    position: relative;
+  }
+  .col-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* SVG connector overlay */
+  .svg-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .connector-line {
+    stroke: var(--accent);
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 6 4;
+    opacity: 0.7;
+    animation: dash 0.5s ease-out;
+  }
+  .connector-line.correct { stroke: var(--green); opacity: 0.9; stroke-dasharray: none; }
+  .connector-line.wrong { stroke: var(--accent2); opacity: 0.9; stroke-dasharray: none; }
+  @keyframes dash { from { stroke-dashoffset: 20; } to { stroke-dashoffset: 0; } }
+
+  /* Items */
+  .item-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .item {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    position: relative;
+  }
+  .item:hover { border-color: var(--accent); transform: translateX(3px); }
+  .item.selected { border-color: var(--accent); background: rgba(91,141,238,0.12); }
+  .item.matched { border-color: var(--green); background: rgba(78,207,168,0.1); cursor: default; }
+  .item.matched:hover { transform: none; }
+  .item.wrong-flash { border-color: var(--accent2); background: rgba(224,91,141,0.1); animation: shake 0.3s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-6px)}
+    75%{transform:translateX(6px)}
+  }
+
+  .item.description {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .item.description.selected { color: var(--text); }
+  .item.description.matched { color: var(--text); }
+
+  .match-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: absolute;
+    right: -5px; top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+  }
+  .desc-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: absolute;
+    left: -5px; top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+  }
+  .match-dot.green, .desc-dot.green { background: var(--green); }
+
+  /* Card footer */
+  .card-footer {
+    padding: 16px 28px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .score-info {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .score-info span { color: var(--green); font-weight: 500; }
+
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn.secondary:hover { border-color: var(--accent); }
+
+  /* Result panel */
+  .result-panel {
+    max-width: 820px;
+    margin: 24px auto 0;
+    display: none;
+  }
+  .result-panel.show { display: block; animation: fadeIn 0.4s ease; }
+  .result-inner {
+    background: var(--surface);
+    border: 1px solid var(--green);
+    border-radius: 20px;
+    padding: 28px;
+    text-align: center;
+  }
+  .result-inner h3 {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .result-inner p { color: var(--muted); font-size: 14px; }
+  .big-score {
+    font-size: 56px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--green), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin: 16px 0 8px;
+  }
+
+  /* Hint */
+  .hint {
+    max-width: 820px;
+    margin: 0 auto 16px;
+    background: rgba(91,141,238,0.08);
+    border: 1px solid rgba(91,141,238,0.2);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hint .icon { font-size: 16px; }
+
+  @media (max-width: 620px) {
+    body { padding: 20px 12px 60px; }
+    .columns { grid-template-columns: 1fr; gap: 16px; }
+    .svg-overlay { display: none; }
+    .match-dot, .desc-dot { display: none; }
+    .card-header { flex-direction: column; gap: 8px; padding: 16px; }
+    .card-header h2 { font-size: 15px; }
+    .matching-area { padding: 12px; }
+    .item { padding: 10px 14px; font-size: 13px; }
+    .item.description { font-size: 12px; }
+    .card-footer { padding: 12px 16px; }
+    .hint { font-size: 12px; padding: 8px 12px; }
+    /* Mobile: selected term shown as sticky chip */
+    .mobile-selected-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(91,141,238,0.15);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      animation: fadeIn 0.2s ease;
+    }
+    .mobile-selected-banner .cancel-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+  }
+  @media (min-width: 621px) {
+    .mobile-selected-banner { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">Matching Quiz</div>
+  <h1>Project Management</h1>
+  <p>Select a term on the left, then its matching definition on the right</p>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-label" id="progressLabel">0 / 0</div>
+</div>
+
+<div class="quiz-nav" id="quizNav"></div>
+
+<div class="hint">
+  <span class="icon">💡</span>
+  <span id="hintText">Click a <strong>term</strong> on the left, then click the matching <strong>definition</strong> on the right to draw a connection.</span>
+</div>
+
+<script>
+  // Update hint for mobile
+  if (window.innerWidth <= 620) {
+    document.getElementById('hintText').innerHTML = 'Tap a <strong>term</strong>, then tap the matching <strong>definition</strong> below it.';
+  }
+</script>
+
+<div id="quizContainer"></div>
+<div class="result-panel" id="resultPanel">
+  <div class="result-inner">
+    <div id="resultEmoji">🎉</div>
+    <div class="big-score" id="resultScore"></div>
+    <h3 id="resultTitle"></h3>
+    <p id="resultMsg"></p>
+    <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn secondary" onclick="resetQuiz()">↺ Try Again</button>
+      <button class="btn" onclick="nextQuiz()">Next Topic →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const QUIZZES = [
+  {
+    id: 1,
+    title: "Project Stakeholders",
+    subtitle: "Match each stakeholder to their correct description",
+    pairs: [
+      ["Organizational groups", "Internal stakeholders who are affected by the activities of the project team."],
+      ["Vendors", "External companies that enter into a contractual agreement to provide components or services necessary for the project."],
+      ["Sponsors", "Persons or groups who provide resources and support for the project and are accountable for enabling success."],
+      ["Customers and users", "The persons or organizations who will approve and manage/use the project's product, service, or result."],
+    ]
+  },
+  {
+    id: 2,
+    title: "Process Groups",
+    subtitle: "Match each Process Group to its description",
+    pairs: [
+      ["Initiating Process Group", "Processes performed to define a new project or new phase by obtaining authorization to start."],
+      ["Planning Process Group", "Processes required to establish scope, refine objectives, and define the course of action to attain objectives."],
+      ["Executing Process Group", "Processes performed to complete the work defined in the project management plan to satisfy specifications."],
+      ["Monitoring & Controlling", "Processes required to track, review, and regulate progress and performance and initiate necessary changes."],
+      ["Closing Process Group", "Processes performed to finalize all activities across all Process Groups to formally close the project or phase."],
+    ]
+  },
+  {
+    id: 3,
+    title: "SEI Risk Method Phases",
+    subtitle: "Name the five phases of the SEI Risk method",
+    pairs: [
+      ["Identify", "Pick out risks so you know what they are relative to current conditions and future success goals."],
+      ["Analyze", "Take identified risks and prioritize them with respect to the success criteria of the project."],
+      ["Plan", "Develop a mitigation strategy to deal with the highest-priority risks."],
+      ["Track", "Monitor risks to make sure they are properly dealt with."],
+      ["Control", "Ensure that processes continuously review risk and that risks are properly being managed."],
+    ]
+  },
+  {
+    id: 4,
+    title: "Risk Mitigation Methods",
+    subtitle: "Match each mitigation method to its description",
+    pairs: [
+      ["Risk Acceptance", "Understanding and approval not to apply any actions but to record the current state of the identified risk."],
+      ["Risk Transfer", "Applying required actions to move identified risk responsibility to other parties."],
+      ["Risk Avoidance", "Applying required actions for complete mitigation and elimination of the identified risk."],
+    ]
+  },
+  {
+    id: 5,
+    title: "Risk Management Areas",
+    subtitle: "Match each key area to its brief description",
+    pairs: [
+      ["Risk Identification", "Requires the team to produce a Threshold of Success."],
+      ["Risk Prioritization", "Requires the team to evaluate risks with respect to the Threshold of Success."],
+      ["Risk Mitigation", "Requires the team to set up a plan for dealing with the highest-priority risks on a regular basis."],
+    ]
+  },
+  {
+    id: 6,
+    title: "Estimation Techniques",
+    subtitle: "Match each technique to its definition",
+    pairs: [
+      ["WAG", "Wild altogether guess."],
+      ["Expert Judgement", "Using experienced people to help generate estimates."],
+      ["Wideband Delphi", "Using a group of people to improve an estimate."],
+      ["Algorithmic / Parametric", "Using computer models to enter values and generate an estimate for a project."],
+      ["Planning Poker", "Similar to Wideband but using a restricted set of numbers."],
+    ]
+  },
+  {
+    id: 7,
+    title: "PM Interpersonal Skills",
+    subtitle: "Match each skill to its definition",
+    pairs: [
+      ["Negotiation", "A strategy of conferring with parties of shared or opposed interests with a view toward compromise or agreement."],
+      ["Trust building", "Engage in open and direct communications to resolve problems."],
+      ["Coaching", "Helping people recognize their potential through empowerment and development."],
+      ["Influencing", "A strategy of sharing power and relying on interpersonal skills to get others to cooperate towards common goals."],
+    ]
+  },
+  {
+    id: 8,
+    title: "SPMP Sections",
+    subtitle: "Match each SPMP section to its description",
+    pairs: [
+      ["Deliverables", "A list of the how and what will be delivered to the customer that represents a product."],
+      ["External interfaces", "Connections between the project and the outside world that provides and receives information."],
+      ["Estimate", "The process of predicting the time, cost, and resources needed to complete a project successfully."],
+      ["Scope", "Clear identification of what will be done on the project."],
+    ]
+  },
+  {
+    id: 9,
+    title: "Software Engineering Metrics",
+    subtitle: "Match each notion to its description",
+    pairs: [
+      ["Software Project Metrics", "Tools for anyone involved in software engineering to understand aspects of the code base and project progress."],
+      ["Metrics", "Provides measuring units to depict values, thresholds, constraints, scope, duration, maximums, minimums, and averages."],
+      ["Measures", "Represent information to establish a common understanding of status, condition, and position of something."],
+    ]
+  },
+  {
+    id: 10,
+    title: "QA & Defect Terminology",
+    subtitle: "Match testing and defect terms with their IEEE definitions",
+    pairs: [
+      ["Error (Mistake)", "A human action that produces an incorrect result (e.g., a mistake made by a developer)."],
+      ["Fault / Defect", "A manifestation of an error; a flaw in code that may cause a failure in the system (a bug)."],
+      ["Failure / Problem", "The inability of a system to perform a function according to its specification during execution."],
+      ["Main QA tool of SD", "Testing provided at different levels of development."],
+    ]
+  },
+  {
+    id: 11,
+    title: "Communication Model",
+    subtitle: "Match each notion to its definition",
+    pairs: [
+      ["Encode", "Translate thought to language (sender side)."],
+      ["Medium", "Method used to convey a message."],
+      ["Noise", "Interference with transmission or understanding."],
+      ["Message", "The content translated from thought to language."],
+      ["Decode", "Translation back to thought or idea (receiver side)."],
+    ]
+  },
+  {
+    id: 12,
+    title: "Terms & Definitions",
+    subtitle: "Match each project management term to its definition",
+    pairs: [
+      ["Project Scope", "The extent of what the project is designed to do, covering functionality, systems, interfaces, and stakeholders."],
+      ["Milestone", "Major points of achievement or significant events in a larger project, usually monitored in a report."],
+      ["Key requirements", "What the customer needs; items to build; features the system should have; stories representing customer needs."],
+      ["Project Manager", "The person responsible for ensuring a project is delivered to specification, on time, and on budget."],
+    ]
+  },
+];
+
+let currentQuizIndex = 0;
+let state = {}; // per quiz: { selectedTerm, selectedDesc, matches: {termIdx: descIdx}, score }
+let totalMatched = 0;
+let totalPairs = 0;
+
+function initState(qIdx) {
+  if (!state[qIdx]) {
+    state[qIdx] = { selectedTerm: null, selectedDesc: null, matches: {}, score: 0, shuffledDescs: null };
+  }
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildNav() {
+  const nav = document.getElementById('quizNav');
+  nav.innerHTML = '';
+  QUIZZES.forEach((q, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-tab' + (i === currentQuizIndex ? ' active' : '');
+    const s = state[i];
+    if (s && Object.keys(s.matches).length === QUIZZES[i].pairs.length) btn.classList.add('done');
+    btn.textContent = `${i + 1}. ${q.title}`;
+    btn.onclick = () => { currentQuizIndex = i; renderQuiz(); };
+    nav.appendChild(btn);
+  });
+}
+
+function updateProgress() {
+  let matched = 0, total = 0;
+  QUIZZES.forEach((q, i) => {
+    total += q.pairs.length;
+    if (state[i]) matched += Object.keys(state[i].matches).length;
+  });
+  const pct = total ? (matched / total * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${matched} / ${total}`;
+}
+
+function renderQuiz() {
+  const q = QUIZZES[currentQuizIndex];
+  initState(currentQuizIndex);
+  const s = state[currentQuizIndex];
+
+  // shuffle descriptions once
+  if (!s.shuffledDescs) {
+    s.shuffledDescs = shuffle(q.pairs.map((_, i) => i));
+  }
+
+  buildNav();
+  updateProgress();
+
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'quiz-card';
+  card.id = 'quizCard';
+
+  // Header
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="q-number">Q${q.id}</div>
+      <div>
+        <h2>${q.title}</h2>
+        <div class="subtitle">${q.subtitle}</div>
+      </div>
+    </div>
+  `;
+
+  // Matching area
+  const area = document.createElement('div');
+  area.className = 'matching-area';
+
+  // Mobile selected-term banner
+  const mobileBanner = document.createElement('div');
+  mobileBanner.className = 'mobile-selected-banner';
+  mobileBanner.id = 'mobileBanner';
+  mobileBanner.style.display = 'none';
+  mobileBanner.innerHTML = `<span id="mobileBannerText"></span><button class="cancel-btn" onclick="cancelSelection()">✕</button>`;
+  area.appendChild(mobileBanner);
+
+  const columns = document.createElement('div');
+  columns.className = 'columns';
+  columns.id = 'columns';
+
+  // Left column: terms
+  const leftCol = document.createElement('div');
+  leftCol.innerHTML = `<div class="col-label">Terms</div>`;
+  const leftList = document.createElement('div');
+  leftList.className = 'item-list';
+  leftList.id = 'termList';
+
+  q.pairs.forEach((pair, idx) => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.dataset.idx = idx;
+    div.id = `term-${idx}`;
+    div.textContent = pair[0];
+
+    const dot = document.createElement('div');
+    dot.className = 'match-dot';
+    dot.id = `tdot-${idx}`;
+    div.appendChild(dot);
+
+    if (s.matches[idx] !== undefined) {
+      div.classList.add('matched');
+      dot.classList.add('green');
+    } else if (s.selectedTerm === idx) {
+      div.classList.add('selected');
+    }
+
+    div.onclick = () => selectTerm(idx);
+    leftList.appendChild(div);
+  });
+
+  leftCol.appendChild(leftList);
+
+  // Right column: descriptions (shuffled)
+  const rightCol = document.createElement('div');
+  rightCol.innerHTML = `<div class="col-label">Definitions</div>`;
+  const rightList = document.createElement('div');
+  rightList.className = 'item-list';
+  rightList.id = 'descList';
+
+  s.shuffledDescs.forEach((origIdx) => {
+    const div = document.createElement('div');
+    div.className = 'item description';
+    div.dataset.origIdx = origIdx;
+    div.id = `desc-${origIdx}`;
+    div.textContent = q.pairs[origIdx][1];
+
+    const dot = document.createElement('div');
+    dot.className = 'desc-dot';
+    dot.id = `ddot-${origIdx}`;
+    div.appendChild(dot);
+
+    // check if matched
+    const matchedByTerm = Object.entries(s.matches).find(([t, d]) => d === origIdx);
+    if (matchedByTerm) {
+      div.classList.add('matched');
+      dot.classList.add('green');
+    } else if (s.selectedDesc === origIdx) {
+      div.classList.add('selected');
+    }
+
+    div.onclick = () => selectDesc(origIdx);
+    rightList.appendChild(div);
+  });
+
+  rightCol.appendChild(rightList);
+
+  // SVG overlay
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.className = 'svg-overlay';
+  svg.id = 'svgOverlay';
+
+  columns.appendChild(leftCol);
+  columns.appendChild(rightCol);
+  columns.appendChild(svg);
+
+  area.appendChild(columns);
+  card.appendChild(area);
+
+  // Footer
+  const matchCount = Object.keys(s.matches).length;
+  const footer = document.createElement('div');
+  footer.className = 'card-footer';
+  footer.innerHTML = `
+    <div class="score-info">Matched: <span>${matchCount} / ${q.pairs.length}</span></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn secondary" onclick="resetQuiz()">↺ Reset</button>
+      <button class="btn" onclick="nextQuiz()">Next →</button>
+    </div>
+  `;
+  card.appendChild(footer);
+
+  container.appendChild(card);
+
+  // Update mobile banner
+  updateMobileBanner();
+
+  // Draw existing connections
+  setTimeout(() => drawAllLines(), 50);
+
+  // Result panel
+  document.getElementById('resultPanel').classList.remove('show');
+}
+
+function cancelSelection() {
+  const s = state[currentQuizIndex];
+  s.selectedTerm = null;
+  s.selectedDesc = null;
+  renderQuiz();
+}
+
+function updateMobileBanner() {
+  const s = state[currentQuizIndex];
+  const q = QUIZZES[currentQuizIndex];
+  const banner = document.getElementById('mobileBanner');
+  if (!banner) return;
+  if (s.selectedTerm !== null) {
+    banner.style.display = 'flex';
+    document.getElementById('mobileBannerText').textContent =
+      '✓ Selected: ' + q.pairs[s.selectedTerm][0] + ' — now tap a definition';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function selectTerm(idx) {
+  const s = state[currentQuizIndex];
+  if (s.matches[idx] !== undefined) return; // already matched
+
+  s.selectedTerm = (s.selectedTerm === idx) ? null : idx;
+  s.selectedDesc = null;
+  renderQuiz();
+}
+
+function selectDesc(origIdx) {
+  const s = state[currentQuizIndex];
+  const alreadyMatched = Object.values(s.matches).includes(origIdx);
+  if (alreadyMatched) return;
+
+  if (s.selectedTerm === null) return; // need to pick term first
+
+  s.selectedDesc = origIdx;
+  tryMatch();
+}
+
+function tryMatch() {
+  const s = state[currentQuizIndex];
+  const q = QUIZZES[currentQuizIndex];
+  const termIdx = s.selectedTerm;
+  const descIdx = s.selectedDesc;
+
+  if (termIdx === null || descIdx === null) return;
+
+  const correct = q.pairs[termIdx][1] === q.pairs[descIdx][1];
+
+  if (correct) {
+    s.matches[termIdx] = descIdx;
+    s.score++;
+    s.selectedTerm = null;
+    s.selectedDesc = null;
+    renderQuiz();
+    updateProgress();
+    buildNav();
+
+    if (Object.keys(s.matches).length === q.pairs.length) {
+      showResult();
+    }
+  } else {
+    // Flash wrong
+    s.selectedTerm = null;
+    s.selectedDesc = null;
+    const termEl = document.getElementById(`term-${termIdx}`);
+    const descEl = document.getElementById(`desc-${descIdx}`);
+    [termEl, descEl].forEach(el => {
+      if (el) {
+        el.classList.add('wrong-flash');
+        setTimeout(() => el.classList.remove('wrong-flash'), 400);
+      }
+    });
+    // Re-render to clear selection
+    setTimeout(() => renderQuiz(), 420);
+  }
+}
+
+function drawAllLines() {
+  const s = state[currentQuizIndex];
+  const svg = document.getElementById('svgOverlay');
+  if (!svg) return;
+  svg.innerHTML = '';
+
+  const colEl = document.getElementById('columns');
+  if (!colEl) return;
+  const colRect = colEl.getBoundingClientRect();
+
+  Object.entries(s.matches).forEach(([termIdx, descIdx]) => {
+    const tdot = document.getElementById(`tdot-${termIdx}`);
+    const ddot = document.getElementById(`ddot-${descIdx}`);
+    if (!tdot || !ddot) return;
+
+    const tr = tdot.getBoundingClientRect();
+    const dr = ddot.getBoundingClientRect();
+
+    const x1 = tr.left + tr.width / 2 - colRect.left;
+    const y1 = tr.top + tr.height / 2 - colRect.top;
+    const x2 = dr.left + dr.width / 2 - colRect.left;
+    const y2 = dr.top + dr.height / 2 - colRect.top;
+
+    const cx1 = x1 + (x2 - x1) * 0.4;
+    const cx2 = x2 - (x2 - x1) * 0.4;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`);
+    path.className = 'connector-line correct';
+    svg.appendChild(path);
+  });
+}
+
+function showResult() {
+  const q = QUIZZES[currentQuizIndex];
+  const s = state[currentQuizIndex];
+  const total = q.pairs.length;
+  const score = s.score;
+  const pct = Math.round((score / total) * 100);
+
+  const panel = document.getElementById('resultPanel');
+  document.getElementById('resultScore').textContent = `${pct}%`;
+  document.getElementById('resultTitle').textContent = pct === 100 ? 'Perfect Score!' : pct >= 70 ? 'Great Job!' : 'Keep Practicing!';
+  document.getElementById('resultMsg').textContent = `You matched ${score} out of ${total} pairs correctly.`;
+  document.getElementById('resultEmoji').textContent = pct === 100 ? '🏆' : pct >= 70 ? '🎯' : '💪';
+  panel.classList.add('show');
+}
+
+function resetQuiz() {
+  state[currentQuizIndex] = null;
+  initState(currentQuizIndex);
+  renderQuiz();
+  document.getElementById('resultPanel').classList.remove('show');
+}
+
+function nextQuiz() {
+  currentQuizIndex = (currentQuizIndex + 1) % QUIZZES.length;
+  renderQuiz();
+  document.getElementById('resultPanel').classList.remove('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Init
+QUIZZES.forEach((_, i) => initState(i));
+renderQuiz();
+
+window.addEventListener('resize', () => {
+  drawAllLines();
+});
+</script>
+</body>
+</html>
